@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff0050">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>RecetaViral - Generador de Recetas Rápidas Estilo TikTok</title>
+<style>
+:root {
+  --primary: #ff0050;
+  --secondary: #00f2ea;
+  --bg: #0f0f0f;
+  --card: #1a1a1a;
+  --text: #ffffff;
+  --muted: #aaaaaa;
+  --border: #333;
+}
+[data-theme="light"] {
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #e0e0e0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  transition: background 0.3s, color 0.3s;
+}
+header {
+  text-align: center;
+  padding: 32px 16px;
+  background: linear-gradient(135deg, #ff0050, #00f2ea);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  color: white;
+  position: relative;
+}
+h1 { font-size: 2.2em; margin-bottom: 8px; }
+.subtitle { font-size: 1.1em; opacity: 0.95; }
+.top-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+}
+.top-btn {
+  background: rgba(0,0,0,0.35);
+  border: none;
+  color: white;
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+.container { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+@media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+}
+h2 { margin-bottom: 16px; color: var(--secondary); font-size: 1.3em; }
+input, select, button, textarea {
+  width: 100%;
+  padding: 12px 14px;
+  margin: 6px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+}
+input, select, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+button {
+  background: var(--primary);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+button:hover { transform: scale(1.02); }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.filter-btn {
+  padding: 8px 14px;
+  background: var(--bg);
+  border-radius: 20px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  font-size: 14px;
+}
+.filter-btn.active { border-color: var(--secondary); background: var(--card); }
+.recipe-grid { display: grid; gap: 16px; }
+.recipe-card {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.recipe-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+.recipe-card h3 { color: var(--secondary); margin-bottom: 6px; font-size: 1.1em; }
+.fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  width: auto;
+  padding: 0;
+}
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.tag { background: var(--card); padding: 3px 8px; border-radius: 10px; font-size: 0.8em; border: 1px solid var(--border); }
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  overflow-y: auto;
+}
+.modal-content {
+  background: var(--card);
+  margin: 20px auto;
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 700px;
+  position: relative;
+  color: var(--text);
+}
+.close { position: absolute; top: 12px; right: 16px; font-size: 28px; cursor: pointer; }
+.step { margin: 10px 0; padding: 12px; background: var(--bg); border-radius: 8px; }
+.macros { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+.macro { background: var(--bg); padding: 8px 12px; border-radius: 8px; font-size: 0.9em; }
+.servings-control { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.servings-control button { width: 40px; padding: 6px; }
+.shopping-list { list-style: none; }
+.shopping-list li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+footer { text-align: center; margin-top: 40px; color: var(--muted); padding: 16px; font-size: 0.9em; }
+.timer-box {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  text-align: center;
+  border: 2px solid var(--secondary);
+}
+.timer-display {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: var(--secondary);
+  margin: 8px 0;
+}
+.timer-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.timer-controls button { width: auto; padding: 8px 16px; margin: 0; }
+.timer-presets { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+.timer-presets button { width: auto; padding: 6px 12px; font-size: 13px; background: var(--card); color: var(--text); border: 1px solid var(--border); }
+</head>
+<body>
+<div id="installBanner" class="install-banner" style="display:none; background:linear-gradient(90deg,#ff0050,#00f2ea); color:white; padding:12px; text-align:center; border-radius:12px; margin-bottom:16px; cursor:pointer;" onclick="installApp()">
+  📲 Instalar Abel Ibarra Chef
+</div>
+
+<header>
+  <div class="top-controls">
+    <button class="top-btn" onclick="toggleTheme()">🌙</button>
+    <button class="top-btn" onclick="toggleLang()">ES / EN</button>
+  </div>
+  <h1 id="appTitle">👨‍🍳 Abel Ibarra Chef</h1>
+  <p class="subtitle" id="appSubtitle">Recetas virales con gramajes exactos</p>
+  <p id="appTagline">Temporizador • Macros • Favoritos • Porciones precisas</p>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2 id="fridgeTitle">¿Qué tienes en la nevera?</h2>
+    <textarea id="ingredients" placeholder="Ej: pollo, pasta, tomates, feta, huevos..." rows="3"></textarea>
+    <button id="genBtn" onclick="generateFromIngredients()">✨ Generar recetas</button>
+    
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar por nombre..." oninput="searchRecipes()">
+    </div>
+
+    <h2 style="margin-top:20px;" id="filtersTitle">Filtros</h2>
+    <div class="filters" id="filtersContainer">
+      <div class="filter-btn active" onclick="setFilter('all')">Todas</div>
+      <div class="filter-btn" onclick="setFilter('easy')">Fáciles</div>
+      <div class="filter-btn" onclick="setFilter('protein')">Alto proteína</div>
+      <div class="filter-btn" onclick="setFilter('fast')"><30 min</div>
+      <div class="filter-btn" onclick="setFilter('viral')">Virales</div>
+      <div class="filter-btn" onclick="setFilter('breakfast')">Desayuno</div>
+      <div class="filter-btn" onclick="setFilter('favorites')">⭐ Favoritos</div>
+    </div>
+    <button id="randomBtn" onclick="showRandom()">🎲 Sorpresa</button>
+    <button id="planBtn" onclick="generateMealPlan()">📅 Plan 7 días</button>
+  </div>
+
+  <div class="card">
+    <h2 id="recipesTitle">Recetas</h2>
+    <div id="recipes" class="recipe-grid"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
+  <h2 id="shopTitle">Lista de la compra</h2>
+  <ul id="shopping" class="shopping-list"></ul>
+  <button id="clearBtn" onclick="clearShopping()">Limpiar lista</button>
+</div>
+
+<footer>
+  <p id="footerText">Abel Ibarra Chef • Recetas precisas • Bilingüe • Favoritos en tu dispositivo</p>
+</footer>
+
+<script>
+let lang = localStorage.getItem('lang') || 'es';
+let theme = localStorage.getItem('theme') || 'dark';
+let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+let currentFilter = 'all';
+let shoppingItems = new Set(JSON.parse(localStorage.getItem('shopping') || '[]'));
+let deferredPrompt;
+let currentServings = 2;
+
+document.documentElement.setAttribute('data-theme', theme);
+
+const i18n = {
+  es: {
+    title: "👨‍🍳 Abel Ibarra Chef",
+    subtitle: "Recetas virales con gramajes exactos",
+    tagline: "Temporizador • Macros • Favoritos • Porciones precisas",
+    fridge: "¿Qué tienes en la nevera?",
+    placeholder: "Ej: pollo, pasta, tomates, feta, huevos...",
+    genBtn: "✨ Generar recetas",
+    filters: "Filtros",
+    random: "🎲 Sorpresa",
+    plan: "📅 Plan 7 días",
+    recipes: "Recetas",
+    shop: "Lista de la compra",
+    clear: "Limpiar lista",
+    empty: "La lista está vacía",
+    all: "Todas",
+    easy: "Fáciles",
+    protein: "Alto proteína",
+    fast: "<30 min",
+    viral: "Virales",
+    breakfast: "Desayuno",
+    favorites: "⭐ Favoritos",
+    time: "Tiempo",
+    proteinLabel: "Proteína",
+    ingredients: "Ingredientes",
+    steps: "Pasos",
+    addShop: "➕ Añadir a la lista",
+    added: "Añadido a la lista",
+    noMatch: "Sin coincidencias exactas. Mostrando populares.",
+    writeIng: "Escribe algunos ingredientes",
+    planTitle: "Plan de 7 días",
+    servings: "Porciones",
+    macros: "Macros aproximados (por porción)",
+    favAdded: "Añadido a favoritos",
+    favRemoved: "Eliminado de favoritos"
+  },
+  en: {
+    title: "👨‍🍳 Abel Ibarra Chef",
+    subtitle: "Viral recipes with exact gramages",
+    tagline: "Timer • Macros • Favorites • Precise servings",
+    fridge: "What's in your fridge?",
+    placeholder: "Ex: chicken, pasta, tomatoes, feta, eggs...",
+    genBtn: "✨ Generate recipes",
+    filters: "Filters",
+    random: "🎲 Surprise",
+    plan: "📅 7-day plan",
+    recipes: "Recipes",
+    shop: "Shopping list",
+    clear: "Clear list",
+    empty: "List is empty",
+    all: "All",
+    easy: "Easy",
+    protein: "High protein",
+    fast: "<30 min",
+    viral: "Viral",
+    breakfast: "Breakfast",
+    favorites: "⭐ Favorites",
+    time: "Time",
+    proteinLabel: "Protein",
+    ingredients: "Ingredients",
+    steps: "Steps",
+    addShop: "➕ Add to list",
+    added: "Added to list",
+    noMatch: "No exact matches. Showing popular ones.",
+    writeIng: "Write some ingredients first",
+    planTitle: "7-day meal plan",
+    servings: "Servings",
+    macros: "Approx macros (per serving)",
+    favAdded: "Added to favorites",
+    favRemoved: "Removed from favorites"
+  }
+};
+
+const recipes = [
+  {id:1, name:{es:"Pasta de Feta al Horno (Viral)",en:"Baked Feta Pasta (Viral)"}, tip:{es:"La receta que empezó el boom de TikTok.",en:"The recipe that started the TikTok boom."}, ingredients:{es:["200 g pasta","200 g queso feta","250 g tomates cherry","3 dientes de ajo (≈15 g)","30 ml aceite de oliva","10 g albahaca fresca","sal y pimienta al gusto"],en:["200 g pasta","200 g feta cheese","250 g cherry tomatoes","3 garlic cloves (≈15 g)","30 ml olive oil","10 g fresh basil","salt and pepper to taste"]}, steps:{es:["Precalienta el horno a 200 °C.","Coloca el feta y los tomates en una bandeja.","Añade el ajo laminado y el aceite.","Hornea 25-30 min hasta que el feta se funda.","Cocina la pasta al dente.","Mezcla todo y añade la albahaca."],en:["Preheat oven to 200 °C.","Place feta and tomatoes on a tray.","Add sliced garlic and oil.","Bake 25-30 min until feta melts.","Cook pasta al dente.","Mix everything and add basil."]}, tags:["viral","easy","fast"], time:"35 min", protein:{es:"medio",en:"medium"}, macros:{kcal:520,protein:18,carbs:55,fat:26}, servings:2},
+  {id:2, name:{es:"Pasta de Cottage Cheese Alto Proteína",en:"High-Protein Cottage Cheese Pasta"}, tip:{es:"Tendencia de alto proteína fuerte en 2026.",en:"Strong high-protein trend in 2026."}, ingredients:{es:["200g pasta","250g cottage cheese","2 dientes ajo","30g parmesano","pimienta"],en:["200g pasta","250g cottage cheese","2 garlic cloves","30g parmesan","pepper"]}, steps:{es:["Cocina pasta al dente.","Licúa cottage con ajo y agua de pasta.","Mezcla con pasta caliente.","Añade parmesano y pimienta."],en:["Cook pasta al dente.","Blend cottage with garlic and pasta water.","Mix with hot pasta.","Add parmesan and pepper."]}, tags:["protein","easy","fast","viral"], time:"15 min", protein:{es:"alto",en:"high"}, macros:{kcal:480,protein:32,carbs:52,fat:14}, servings:2},
+  {id:3, name:{es:"Bowl de Pollo con Arroz y Brócoli",en:"Chicken Rice Broccoli Bowl"}, tip:{es:"Perfecto para meal prep.",en:"Perfect for meal prep."}, ingredients:{es:["200g pollo","150g arroz","150g brócoli","2 cdas soja","ajo","sésamo"],en:["200g chicken","150g rice","150g broccoli","2 tbsp soy","garlic","sesame"]}, steps:{es:["Cocina arroz.","Saltea pollo con ajo y soja.","Cocina brócoli.","Arma el bowl y añade sésamo."],en:["Cook rice.","Stir-fry chicken with garlic and soy.","Cook broccoli.","Assemble bowl and add sesame."]}, tags:["protein","easy","mealprep"], time:"25 min", protein:{es:"alto",en:"high"}, macros:{kcal:450,protein:38,carbs:42,fat:12}, servings:2},
+  {id:4, name:{es:"One-Pot Lemon Chicken Orzo",en:"One-Pot Lemon Chicken Orzo"}, tip:{es:"Una olla, mínimo lavado.",en:"One pot, minimal cleanup."}, ingredients:{es:["300g pollo","150g orzo","1 limón","100g espinacas","400ml caldo","100ml crema"],en:["300g chicken","150g orzo","1 lemon","100g spinach","400ml broth","100ml cream"]}, steps:{es:["Dora pollo.","Añade orzo, caldo y limón.","Cocina 15 min.","Añade crema y espinacas."],en:["Brown chicken.","Add orzo, broth and lemon.","Cook 15 min.","Add cream and spinach."]}, tags:["easy","fast","viral"], time:"30 min", protein:{es:"alto",en:"high"}, macros:{kcal:510,protein:36,carbs:40,fat:20}, servings:2},
+  {id:5, name:{es:"Hot Honey Feta Chicken",en:"Hot Honey Feta Chicken"}, tip:{es:"Tendencia viral 2026: dulce-picante.",en:"2026 viral trend: sweet-spicy."}, ingredients:{es:["400g pollo","3 cdas miel","100g feta","ajo","chile","aceite"],en:["400g chicken","3 tbsp honey","100g feta","garlic","chili","oil"]}, steps:{es:["Marina pollo.","Cocina hasta dorado.","Haz salsa hot honey.","Añade feta y salsa."],en:["Marinate chicken.","Cook until golden.","Make hot honey sauce.","Top with feta and sauce."]}, tags:["viral","protein","easy"], time:"30 min", protein:{es:"alto",en:"high"}, macros:{kcal:490,protein:40,carbs:22,fat:26}, servings:2},
+  {id:6, name:{es:"Huevos con Pesto y Pan Tostado",en:"Pesto Eggs on Toast"}, tip:{es:"Desayuno o cena ultra rápida.",en:"Ultra quick breakfast or dinner."}, ingredients:{es:["2 huevos","2 cdas pesto","2 rebanadas pan","tomate","queso"],en:["2 eggs","2 tbsp pesto","2 slices bread","tomato","cheese"]}, steps:{es:["Tuesta pan.","Cocina huevos.","Unta pesto.","Monta y añade tomate."],en:["Toast bread.","Cook eggs.","Spread pesto.","Assemble and add tomato."]}, tags:["easy","fast","breakfast"], time:"10 min", protein:{es:"alto",en:"high"}, macros:{kcal:380,protein:20,carbs:28,fat:22}, servings:1},
+  {id:7, name:{es:"Salmón Bowl con Arroz y Aguacate",en:"Salmon Rice Avocado Bowl"}, tip:{es:"Bowl saludable y sabroso.",en:"Healthy and flavorful bowl."}, ingredients:{es:["150g salmón","120g arroz","1/2 aguacate","pepino","soja","sésamo"],en:["150g salmon","120g rice","1/2 avocado","cucumber","soy","sesame"]}, steps:{es:["Cocina arroz.","Cocina salmón.","Corta aguacate y pepino.","Arma bowl."],en:["Cook rice.","Cook salmon.","Slice avocado and cucumber.","Assemble bowl."]}, tags:["protein","easy","healthy"], time:"25 min", protein:{es:"alto",en:"high"}, macros:{kcal:520,protein:32,carbs:38,fat:24}, servings:1},
+  {id:8, name:{es:"Patatas Smashed al Air Fryer",en:"Air Fryer Smashed Potatoes"}, tip:{es:"Crujientes por fuera, tiernas por dentro.",en:"Crispy outside, soft inside."}, ingredients:{es:["500g patatas","aceite","ajo","parmesano","hierbas"],en:["500g potatoes","oil","garlic","parmesan","herbs"]}, steps:{es:["Hierve patatas.","Aplasta.","Añade aceite y ajo.","Air fryer 15-20 min.","Añade parmesano."],en:["Boil potatoes.","Smash.","Add oil and garlic.","Air fry 15-20 min.","Add parmesan."]}, tags:["easy","viral","side"], time:"40 min", protein:{es:"bajo",en:"low"}, macros:{kcal:280,protein:6,carbs:38,fat:12}, servings:3},
+  {id:9, name:{es:"Marry Me Chicken",en:"Marry Me Chicken"}, tip:{es:"Pollo en salsa cremosa de tomate.",en:"Chicken in creamy tomato sauce."}, ingredients:{es:["400g pollo","80g tomates secos","200ml crema","albahaca","ajo","parmesano"],en:["400g chicken","80g sun-dried tomatoes","200ml cream","basil","garlic","parmesan"]}, steps:{es:["Dora pollo.","Añade ajo y tomates secos.","Vierte crema.","Añade albahaca y parmesano."],en:["Brown chicken.","Add garlic and sun-dried tomatoes.","Pour cream.","Add basil and parmesan."]}, tags:["viral","protein","easy"], time:"30 min", protein:{es:"alto",en:"high"}, macros:{kcal:540,protein:38,carbs:8,fat:38}, servings:2},
+  {id:10, name:{es:"Birria Tacos",en:"Birria Tacos"}, tip:{es:"Tacos jugosos con consomé.",en:"Juicy tacos with consommé."}, ingredients:{es:["600g carne res","chiles","tomate","tortillas","queso","cilantro"],en:["600g beef","chilies","tomato","tortillas","cheese","cilantro"]}, steps:{es:["Cocina carne con chiles hasta tierna.","Deshebra.","Moja tortillas en consomé.","Rellena y dora."],en:["Cook beef with chilies until tender.","Shred.","Dip tortillas in consommé.","Fill and crisp."]}, tags:["viral","protein"], time:"3-4 hours", protein:{es:"alto",en:"high"}, macros:{kcal:620,protein:42,carbs:35,fat:32}, servings:4},
+  {id:11, name:{es:"Avena al Horno (Baked Oats)",en:"Baked Oats"}, tip:{es:"Desayuno tipo pastel. Muy viral.",en:"Cake-like breakfast. Very viral."}, ingredients:{es:["50g avena","1 plátano","1 huevo","100ml leche","1 cda mantequilla maní","chocolate"],en:["50g oats","1 banana","1 egg","100ml milk","1 tbsp peanut butter","chocolate"]}, steps:{es:["Mezcla todo.","Hornea 20 min a 180°C.","Sirve caliente."],en:["Mix everything.","Bake 20 min at 350°F.","Serve warm."]}, tags:["easy","viral","breakfast"], time:"25 min", protein:{es:"medio",en:"medium"}, macros:{kcal:420,protein:16,carbs:52,fat:16}, servings:1},
+  {id:12, name:{es:"Pasta Chips",en:"Pasta Chips"}, tip:{es:"Snack crujiente viral.",en:"Crispy viral snack."}, ingredients:{es:["200g pasta","aceite","especias","queso"],en:["200g pasta","oil","spices","cheese"]}, steps:{es:["Cocina pasta al dente.","Escurre y seca.","Mezcla con aceite y especias.","Hornea o air fryer hasta crujiente."],en:["Cook pasta al dente.","Drain and dry.","Toss with oil and spices.","Bake or air fry until crispy."]}, tags:["viral","easy","snack"], time:"30 min", protein:{es:"bajo",en:"low"}, macros:{kcal:340,protein:10,carbs:48,fat:12}, servings:3},
+  {id:13, name:{es:"Pollo con Miel y Ajo",en:"Honey Garlic Chicken"}, tip:{es:"Clásico rápido y sabroso.",en:"Quick and tasty classic."}, ingredients:{es:["400g pollo","3 cdas miel","ajo","3 cdas soja","jengibre"],en:["400g chicken","3 tbsp honey","garlic","3 tbsp soy","ginger"]}, steps:{es:["Corta pollo en cubos.","Saltea con ajo y jengibre.","Añade miel y soja.","Cocina hasta espesar."],en:["Cut chicken into cubes.","Stir-fry with garlic and ginger.","Add honey and soy.","Cook until thick."]}, tags:["easy","fast","protein"], time:"20 min", protein:{es:"alto",en:"high"}, macros:{kcal:460,protein:40,carbs:24,fat:20}, servings:2},
+  {id:14, name:{es:"Ensalada de Huevo con Chipotle",en:"Spicy Chipotle Egg Salad"}, tip:{es:"Alto proteína y muy sabrosa.",en:"High protein and flavorful."}, ingredients:{es:["4 huevos","chipotle","mayonesa","cebolla","cilantro"],en:["4 eggs","chipotle","mayo","onion","cilantro"]}, steps:{es:["Hierve huevos.","Pica y mezcla con mayonesa y chipotle.","Añade cebolla y cilantro."],en:["Boil eggs.","Chop and mix with mayo and chipotle.","Add onion and cilantro."]}, tags:["protein","easy","fast"], time:"15 min", protein:{es:"alto",en:"high"}, macros:{kcal:320,protein:22,carbs:4,fat:24}, servings:2},
+  {id:15, name:{es:"Sopa de Gnocchi con Pollo",en:"Chicken Gnocchi Soup"}, tip:{es:"Comfort food cremosa.",en:"Creamy comfort food."}, ingredients:{es:["300g pollo","250g gnocchi","200ml crema","espinacas","ajo","caldo"],en:["300g chicken","250g gnocchi","200ml cream","spinach","garlic","broth"]}, steps:{es:["Cocina y deshebra pollo.","Saltea ajo.","Añade caldo y gnocchi.","Incorpora crema y espinacas."],en:["Cook and shred chicken.","Sauté garlic.","Add broth and gnocchi.","Stir in cream and spinach."]}, tags:["easy","comfort"], time:"30 min", protein:{es:"medio",en:"medium"}, macros:{kcal:480,protein:28,carbs:42,fat:22}, servings:3},
+  {id:16, name:{es:"Tacos de Big Mac",en:"Big Mac Tacos"}, tip:{es:"Fusión viral divertida.",en:"Fun viral fusion."}, ingredients:{es:["300g carne picada","tortillas","lechuga","queso","salsa especial","cebolla"],en:["300g ground beef","tortillas","lettuce","cheese","special sauce","onion"]}, steps:{es:["Cocina carne.","Calienta tortillas.","Arma con carne, lechuga, queso y salsa."],en:["Cook beef.","Warm tortillas.","Assemble with beef, lettuce, cheese and sauce."]}, tags:["viral","easy","fast"], time:"20 min", protein:{es:"alto",en:"high"}, macros:{kcal:550,protein:28,carbs:32,fat:32}, servings:2},
+  {id:17, name:{es:"Avena Nocturna con Chía",en:"Overnight Oats with Chia"}, tip:{es:"Prep la noche anterior.",en:"Prep the night before."}, ingredients:{es:["50g avena","1 cda chía","150ml leche","yogur","fruta","miel"],en:["50g oats","1 tbsp chia","150ml milk","yogurt","fruit","honey"]}, steps:{es:["Mezcla avena, chía, leche y yogur.","Refrigera toda la noche.","Añade fruta por la mañana."],en:["Mix oats, chia, milk and yogurt.","Refrigerate overnight.","Add fruit in the morning."]}, tags:["easy","breakfast","mealprep"], time:"5 min + overnight", protein:{es:"medio",en:"medium"}, macros:{kcal:340,protein:14,carbs:48,fat:10}, servings:1},
+  {id:18, name:{es:"Pollo Shawarma Crispy Rice",en:"Crispy Rice Chicken Shawarma"}, tip:{es:"Arroz crujiente con pollo marinado.",en:"Crispy rice with marinated chicken."}, ingredients:{es:["400g pollo","200g arroz","yogur","especias shawarma","limón","ajo"],en:["400g chicken","200g rice","yogurt","shawarma spices","lemon","garlic"]}, steps:{es:["Marina pollo.","Cocina arroz y dóralo.","Cocina pollo.","Sirve junto."],en:["Marinate chicken.","Cook and crisp rice.","Cook chicken.","Serve together."]}, tags:["viral","protein"], time:"40 min", protein:{es:"alto",en:"high"}, macros:{kcal:560,protein:42,carbs:48,fat:20}, servings:2},
+  {id:19, name:{es:"Bowl de Atún Picante",en:"Spicy Tuna Bowl"}, tip:{es:"Rápido, alto en proteína y muy sabroso.",en:"Quick, high protein and tasty."}, ingredients:{es:["1 lata atún","arroz","mayonesa picante","aguacate","sésamo","cebollín"],en:["1 can tuna","rice","spicy mayo","avocado","sesame","green onion"]}, steps:{es:["Cocina arroz.","Mezcla atún con mayonesa picante.","Arma bowl con aguacate y sésamo."],en:["Cook rice.","Mix tuna with spicy mayo.","Assemble bowl with avocado and sesame."]}, tags:["protein","easy","fast"], time:"15 min", protein:{es:"alto",en:"high"}, macros:{kcal:420,protein:30,carbs:36,fat:16}, servings:1},
+  {id:20, name:{es:"Tortilla de Patatas Express",en:"Express Spanish Omelette"}, tip:{es:"Versión rápida de la clásica.",en:"Quick version of the classic."}, ingredients:{es:["3 huevos","2 patatas","cebolla","aceite","sal"],en:["3 eggs","2 potatoes","onion","oil","salt"]}, steps:{es:["Cocina patatas y cebolla.","Bate huevos.","Mezcla y cuaja en sartén."],en:["Cook potatoes and onion.","Beat eggs.","Mix and cook in pan."]}, tags:["easy","fast","breakfast"], time:"20 min", protein:{es:"medio",en:"medium"}, macros:{kcal:380,protein:16,carbs:28,fat:24}, servings:2},
+  {id:21, name:{es:"Smoothie Bowl de Proteína",en:"Protein Smoothie Bowl"}, tip:{es:"Desayuno o post-entreno.",en:"Breakfast or post-workout."}, ingredients:{es:["1 scoop proteína","plátano","fruta congelada","leche","granola","mantequilla maní"],en:["1 scoop protein","banana","frozen fruit","milk","granola","peanut butter"]}, steps:{es:["Licúa proteína, plátano, fruta y leche.","Sirve en bowl.","Añade toppings."],en:["Blend protein, banana, fruit and milk.","Serve in bowl.","Add toppings."]}, tags:["protein","breakfast","easy"], time:"5 min", protein:{es:"alto",en:"high"}, macros:{kcal:410,protein:32,carbs:45,fat:10}, servings:1},
+  {id:22, name:{es:"Wrap de Pollo y Aguacate",en:"Chicken Avocado Wrap"}, tip:{es:"Ideal para llevar.",en:"Perfect to take away."}, ingredients:{es:["tortilla","pollo","aguacate","lechuga","yogur","lima"],en:["tortilla","chicken","avocado","lettuce","yogurt","lime"]}, steps:{es:["Calienta tortilla.","Rellena con pollo, aguacate y lechuga.","Añade yogur y lima.","Enrolla."],en:["Warm tortilla.","Fill with chicken, avocado and lettuce.","Add yogurt and lime.","Roll up."]}, tags:["easy","fast","protein"], time:"10 min", protein:{es:"alto",en:"high"}, macros:{kcal:390,protein:28,carbs:30,fat:16}, servings:1},
+  {id:23, name:{es:"Galletas de Avena y Plátano",en:"Oat Banana Cookies"}, tip:{es:"Snack saludable en 15 minutos.",en:"Healthy snack in 15 minutes."}, ingredients:{es:["2 plátanos","150g avena","chispas chocolate","canela"],en:["2 bananas","150g oats","chocolate chips","cinnamon"]}, steps:{es:["Aplasta plátanos.","Mezcla con avena y chispas.","Hornea 12-15 min a 180°C."],en:["Mash bananas.","Mix with oats and chips.","Bake 12-15 min at 350°F."]}, tags:["easy","snack","breakfast"], time:"15 min", protein:{es:"bajo",en:"low"}, macros:{kcal:180,protein:4,carbs:32,fat:5}, servings:8},
+  {id:24, name:{es:"Salteado de Verduras y Tofu",en:"Tofu Veggie Stir-Fry"}, tip:{es:"Opción vegetariana alta en proteína.",en:"High-protein vegetarian option."}, ingredients:{es:["200g tofu","brócoli","pimiento","soja","ajo","jengibre","arroz"],en:["200g tofu","broccoli","pepper","soy","garlic","ginger","rice"]}, steps:{es:["Dora tofu.","Saltea verduras con ajo y jengibre.","Añade soja.","Sirve con arroz."],en:["Brown tofu.","Stir-fry veggies with garlic and ginger.","Add soy.","Serve with rice."]}, tags:["protein","easy","fast","vegetarian"], time:"20 min", protein:{es:"alto",en:"high"}, macros:{kcal:380,protein:22,carbs:40,fat:14}, servings:2},
+  {id:25, name:{es:"Pancakes de Proteína",en:"Protein Pancakes"}, tip:{es:"Desayuno alto en proteína.",en:"High-protein breakfast."}, ingredients:{es:["1 scoop proteína","1 plátano","2 huevos","avena","canela"],en:["1 scoop protein","1 banana","2 eggs","oats","cinnamon"]}, steps:{es:["Licúa o mezcla todo.","Cocina en sartén por ambos lados.","Sirve con fruta."],en:["Blend or mix everything.","Cook in pan on both sides.","Serve with fruit."]}, tags:["protein","breakfast","easy"], time:"15 min", protein:{es:"alto",en:"high"}, macros:{kcal:360,protein:28,carbs:32,fat:12}, servings:1},
+  {id:26, name:{es:"Bowl de Quinoa y Garbanzos",en:"Quinoa Chickpea Bowl"}, tip:{es:"Completo, vegetariano y alto en proteína.",en:"Complete, vegetarian and high protein."}, ingredients:{es:["100g quinoa","150g garbanzos","aguacate","espinacas","limón","aceite"],en:["100g quinoa","150g chickpeas","avocado","spinach","lemon","oil"]}, steps:{es:["Cocina la quinoa.","Calienta garbanzos.","Arma bowl con espinacas y aguacate.","Aliña con limón."],en:["Cook quinoa.","Warm chickpeas.","Assemble bowl with spinach and avocado.","Dress with lemon."]}, tags:["protein","easy","vegetarian","healthy"], time:"20 min", protein:{es:"alto",en:"high"}, macros:{kcal:450,protein:18,carbs:52,fat:18}, servings:2},
+  {id:27, name:{es:"Pollo al Curry Rápido",en:"Quick Chicken Curry"}, tip:{es:"Sabor intenso en menos de 30 minutos.",en:"Intense flavor in under 30 minutes."}, ingredients:{es:["400g pollo","leche de coco","curry en polvo","cebolla","ajo","arroz"],en:["400g chicken","coconut milk","curry powder","onion","garlic","rice"]}, steps:{es:["Dora pollo con cebolla y ajo.","Añade curry y leche de coco.","Cocina 15 min.","Sirve con arroz."],en:["Brown chicken with onion and garlic.","Add curry and coconut milk.","Cook 15 min.","Serve with rice."]}, tags:["easy","fast","protein"], time:"25 min", protein:{es:"alto",en:"high"}, macros:{kcal:520,protein:36,carbs:40,fat:22}, servings:2},
+  {id:28, name:{es:"Ensalada César de Pollo",en:"Chicken Caesar Salad"}, tip:{es:"Clásica y reconfortante.",en:"Classic and satisfying."}, ingredients:{es:["200g pollo","lechuga romana","parmesano","crutones","salsa césar"],en:["200g chicken","romaine","parmesan","croutons","caesar dressing"]}, steps:{es:["Cocina y corta el pollo.","Lava lechuga.","Mezcla todo con salsa y parmesano."],en:["Cook and slice chicken.","Wash lettuce.","Toss everything with dressing and parmesan."]}, tags:["easy","fast","protein"], time:"15 min", protein:{es:"alto",en:"high"}, macros:{kcal:410,protein:34,carbs:12,fat:24}, servings:1},
+  {id:29, name:{es:"Tacos de Pescado",en:"Fish Tacos"}, tip:{es:"Frescos y ligeros.",en:"Fresh and light."}, ingredients:{es:["300g pescado blanco","tortillas","col","lima","crema","cilantro"],en:["300g white fish","tortillas","cabbage","lime","cream","cilantro"]}, steps:{es:["Cocina el pescado.","Calienta tortillas.","Arma con col, pescado, crema y lima."],en:["Cook the fish.","Warm tortillas.","Assemble with cabbage, fish, cream and lime."]}, tags:["easy","fast","protein"], time:"20 min", protein:{es:"alto",en:"high"}, macros:{kcal:380,protein:28,carbs:32,fat:14}, servings:2},
+  {id:30, name:{es:"Overnight Oats de Chocolate",en:"Chocolate Overnight Oats"}, tip:{es:"Desayuno listo al despertar.",en:"Breakfast ready when you wake up."}, ingredients:{es:["50g avena","1 cda cacao","leche","yogur","chispas chocolate","plátano"],en:["50g oats","1 tbsp cocoa","milk","yogurt","chocolate chips","banana"]}, steps:{es:["Mezcla avena, cacao, leche y yogur.","Refrigera toda la noche.","Añade toppings por la mañana."],en:["Mix oats, cocoa, milk and yogurt.","Refrigerate overnight.","Add toppings in the morning."]}, tags:["easy","breakfast","mealprep"], time:"5 min + overnight", protein:{es:"medio",en:"medium"}, macros:{kcal:370,protein:15,carbs:50,fat:12}, servings:1}
+];
+
+function t(key) { return i18n[lang][key] || key; }
+
+function updateUI() {
+  document.getElementById('appTitle').textContent = t('title');
+  document.getElementById('appSubtitle').textContent = t('subtitle');
+  document.getElementById('appTagline').textContent = t('tagline');
+  document.getElementById('fridgeTitle').textContent = t('fridge');
+  document.getElementById('ingredients').placeholder = t('placeholder');
+  document.getElementById('genBtn').textContent = t('genBtn');
+  document.getElementById('filtersTitle').textContent = t('filters');
+  document.getElementById('randomBtn').textContent = t('random');
+  document.getElementById('planBtn').textContent = t('plan');
+  document.getElementById('recipesTitle').textContent = t('recipes');
+  document.getElementById('shopTitle').textContent = t('shop');
+  document.getElementById('clearBtn').textContent = t('clear');
+  document.getElementById('searchInput').placeholder = lang === 'es' ? 'Buscar por nombre...' : 'Search by name...';
+  document.getElementById('footerText').textContent = lang === 'es' 
+    ? "Abel Ibarra Chef • Recetas precisas • Bilingüe • Favoritos en tu dispositivo"
+    : "Abel Ibarra Chef • Precise recipes • Bilingual • Favorites on your device";
+
+  const filterKeys = ['all','easy','protein','fast','viral','breakfast','favorites'];
+  document.querySelectorAll('.filter-btn').forEach((btn, i) => {
+    if (filterKeys[i]) btn.textContent = t(filterKeys[i]);
+  });
+  displayRecipes();
+  updateShopping();
+}
+
+function toggleLang() {
+  lang = lang === 'es' ? 'en' : 'es';
+  localStorage.setItem('lang', lang);
+  updateUI();
+}
+
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  document.querySelector('.top-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  displayRecipes();
+}
+
+function searchRecipes() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  if (!q) return displayRecipes();
+  const filtered = recipes.filter(r => r.name[lang].toLowerCase().includes(q) || r.tip[lang].toLowerCase().includes(q));
+  displayRecipes(filtered);
+}
+
+function displayRecipes(filtered = null) {
+  const container = document.getElementById('recipes');
+  let list = filtered || recipes;
+  if (currentFilter === 'favorites') {
+    list = recipes.filter(r => favorites.includes(r.id));
+  } else if (currentFilter !== 'all' && !filtered) {
+    list = recipes.filter(r => r.tags.includes(currentFilter));
+  }
+  if (list.length === 0) {
+    container.innerHTML = `<p style="text-align:center;color:var(--muted);padding:20px;">${lang==='es'?'No hay recetas en esta categoría':'No recipes in this category'}</p>`;
+    return;
+  }
+  container.innerHTML = list.map(r => `
+    <div class="recipe-card" onclick="showRecipe(${r.id})">
+      <button class="fav-btn" onclick="event.stopPropagation(); toggleFav(${r.id})">${favorites.includes(r.id)?'❤️':'🤍'}</button>
+      <h3>${r.name[lang]}</h3>
+      <div class="tags">
+        <span class="tag">⏱ ${r.time}</span>
+        <span class="tag">💪 ${r.protein[lang]}</span>
+        ${r.tags.includes('viral') ? '<span class="tag">🔥 Viral</span>' : ''}
+      </div>
+      <p>${r.tip[lang]}</p>
+    </div>
+  `).join('');
+}
+
+function showRecipe(id) {
+  const r = recipes.find(x => x.id === id);
+  currentServings = r.servings || 2;
+  renderModal(r);
+  document.getElementById('modal').style.display = 'block';
+}
+
+function renderModal(r) {
+  const factor = currentServings / (r.servings || 2);
+  const ings = r.ingredients[lang].map(i => {
+    const match = i.match(/^(\d+(\.\d+)?)\s*(g|ml|cdas?|tsp|tbsp)?/i);
+    if (match) {
+      const num = parseFloat(match[1]) * factor;
+      return i.replace(match[0], Math.round(num*10)/10 + (match[3]||''));
+    }
+    return i;
+  });
+  document.getElementById('modal-body').innerHTML = `
+    <h2>${r.name[lang]}</h2>
+    <p><strong>${t('time')}:</strong> ${r.time} | <strong>${t('proteinLabel')}:</strong> ${r.protein[lang]}</p>
+    <div class="tags">${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+    <div class="servings-control">
+      <span>${t('servings')}:</span>
+      <button onclick="changeServings(${r.id}, -1)">-</button>
+      <strong>${currentServings}</strong>
+      <button onclick="changeServings(${r.id}, 1)">+</button>
+    </div>
+    <div class="macros">
+      <div class="macro">${Math.round(r.macros.kcal * factor)} kcal</div>
+      <div class="macro">P: ${Math.round(r.macros.protein * factor)}g</div>
+      <div class="macro">C: ${Math.round(r.macros.carbs * factor)}g</div>
+      <div class="macro">F: ${Math.round(r.macros.fat * factor)}g</div>
+    </div>
+    <p style="font-size:0.85em;color:var(--muted);">${t('macros')}</p>
+    
+    <div class="timer-box">
+      <h3>⏱️ ${lang === 'es' ? 'Temporizador de cocina' : 'Cooking timer'}</h3>
+      <div class="timer-display" id="timerDisplay">00:00</div>
+      <div class="timer-presets">
+        <button onclick="setTimer(5)">5 min</button>
+        <button onclick="setTimer(10)">10 min</button>
+        <button onclick="setTimer(15)">15 min</button>
+        <button onclick="setTimer(20)">20 min</button>
+        <button onclick="setTimer(30)">30 min</button>
+      </div>
+      <div class="timer-controls">
+        <button onclick="startTimer()">▶️ ${lang === 'es' ? 'Iniciar' : 'Start'}</button>
+        <button onclick="pauseTimer()">⏸️ ${lang === 'es' ? 'Pausar' : 'Pause'}</button>
+        <button onclick="resetTimer()">🔄 ${lang === 'es' ? 'Reiniciar' : 'Reset'}</button>
+      </div>
+    </div>
+
+    <h3>${t('ingredients')}</h3>
+    <ul>${ings.map(i => `<li>${i}</li>`).join('')}</ul>
+    <button onclick="addToShopping(${r.id})">${t('addShop')}</button>
+    <h3>${t('steps')}</h3>
+    ${r.steps[lang].map((s, i) => `<div class="step"><strong>${i+1}.</strong> ${s}</div>`).join('')}
+    <p style="margin-top:15px;"><em>${r.tip[lang]}</em></p>
+  `;
+}
+
+function changeServings(id, delta) {
+  currentServings = Math.max(1, currentServings + delta);
+  const r = recipes.find(x => x.id === id);
+  renderModal(r);
+}
+
+let timerInterval = null;
+let timerSeconds = 0;
+let timerRunning = false;
+
+function setTimer(minutes) {
+  timerSeconds = minutes * 60;
+  updateTimerDisplay();
+  if (timerRunning) pauseTimer();
+}
+
+function startTimer() {
+  if (timerSeconds <= 0) {
+    alert(lang === 'es' ? 'Selecciona un tiempo primero' : 'Select a time first');
+    return;
+  }
+  if (timerRunning) return;
+  timerRunning = true;
+  timerInterval = setInterval(() => {
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      alert(lang === 'es' ? '⏰ ¡Tiempo terminado!' : '⏰ Time is up!');
+      // Optional vibration if supported
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      return;
+    }
+    timerSeconds--;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+}
+
+function resetTimer() {
+  pauseTimer();
+  timerSeconds = 0;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  const display = document.getElementById('timerDisplay');
+  if (display) {
+    display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+}
+
+function closeModal() {
+  pauseTimer();
+  document.getElementById('modal').style.display = 'none';
+}
+
+function toggleFav(id) {
+  if (favorites.includes(id)) {
+    favorites = favorites.filter(f => f !== id);
+    alert(t('favRemoved'));
+  } else {
+    favorites.push(id);
+    alert(t('favAdded'));
+  }
+  localStorage.setItem('favorites', JSON.stringify(favorites));
+  displayRecipes();
+}
+
+function generateFromIngredients() {
+  const input = document.getElementById('ingredients').value.toLowerCase();
+  if (!input.trim()) { alert(t('writeIng')); return; }
+  const words = input.split(/[, ]+/).filter(w => w.length > 2);
+  const matches = recipes.filter(r => 
+    r.ingredients[lang].some(ing => words.some(w => ing.toLowerCase().includes(w)))
+  );
+  displayRecipes(matches.length ? matches : recipes.slice(0, 4));
+  if (matches.length === 0) alert(t('noMatch'));
+}
+
+function showRandom() {
+  const r = recipes[Math.floor(Math.random() * recipes.length)];
+  showRecipe(r.id);
+}
+
+function generateMealPlan() {
+  const days = lang === 'es' ? ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"] : ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const shuffled = [...recipes].sort(() => 0.5 - Math.random());
+  let html = `<h2>${t('planTitle')}</h2>`;
+  days.forEach((day, i) => {
+    const r = shuffled[i % shuffled.length];
+    html += `<div class="step"><strong>${day}:</strong> ${r.name[lang]} <button onclick="addToShopping(${r.id})" style="width:auto;padding:6px 10px;margin-left:8px;">+ Lista</button></div>`;
+  });
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function addToShopping(id) {
+  const r = recipes.find(x => x.id === id);
+  r.ingredients[lang].forEach(i => shoppingItems.add(i));
+  localStorage.setItem('shopping', JSON.stringify([...shoppingItems]));
+  updateShopping();
+  alert(t('added'));
+}
+
+function updateShopping() {
+  const ul = document.getElementById('shopping');
+  ul.innerHTML = [...shoppingItems].map(i => `<li>🛒 ${i} <button onclick="removeFromShopping('${i.replace(/'/g,"\\'")}')" style="width:auto;padding:4px 8px;font-size:12px;">✕</button></li>`).join('') || `<li>${t('empty')}</li>`;
+}
+
+function removeFromShopping(item) {
+  shoppingItems.delete(item);
+  localStorage.setItem('shopping', JSON.stringify([...shoppingItems]));
+  updateShopping();
+}
+
+function clearShopping() {
+  shoppingItems.clear();
+  localStorage.setItem('shopping', '[]');
+  updateShopping();
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'block';
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('installBanner').style.display = 'none';
+    });
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+updateUI();
+updateShopping();
+
+window.onclick = function(event) {
+  if (event.target == document.getElementById('modal')) closeModal();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff0050">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>RecetaViral - Generador de Recetas Rápidas Estilo TikTok</title>
+<style>
+:root {
+  --primary: #ff0050;
+  --secondary: #00f2ea;
+  --bg: #0f0f0f;
+  --card: #1a1a1a;
+  --text: #ffffff;
+  --muted: #aaaaaa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+header {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #ff0050, #00f2ea);
+  border-radius: 20px;
+  margin-bottom: 30px;
+  color: white;
+  position: relative;
+}
+h1 { font-size: 2.5em; margin-bottom: 10px; }
+.subtitle { font-size: 1.2em; opacity: 0.9; }
+.lang-switch {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.container { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+@media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+h2 { margin-bottom: 20px; color: var(--secondary); }
+input, select, button, textarea {
+  width: 100%;
+  padding: 12px 16px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+}
+input, select, textarea { background: #2a2a2a; color: white; }
+button {
+  background: var(--primary);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+button:hover { transform: scale(1.02); }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+.filter-btn {
+  padding: 8px 16px;
+  background: #333;
+  border-radius: 20px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.filter-btn.active { border-color: var(--secondary); background: #222; }
+.recipe-grid { display: grid; gap: 20px; }
+.recipe-card {
+  background: #222;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.recipe-card:hover { transform: translateY(-4px); }
+.recipe-card h3 { color: var(--secondary); margin-bottom: 8px; }
+.tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.tag { background: #333; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; }
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  overflow-y: auto;
+}
+.modal-content {
+  background: var(--card);
+  margin: 40px auto;
+  padding: 30px;
+  border-radius: 16px;
+  max-width: 700px;
+  position: relative;
+}
+.close { position: absolute; top: 15px; right: 20px; font-size: 28px; cursor: pointer; }
+.step { margin: 12px 0; padding: 12px; background: #222; border-radius: 8px; }
+.shopping-list { list-style: none; }
+.shopping-list li { padding: 8px 0; border-bottom: 1px solid #333; }
+footer { text-align: center; margin-top: 50px; color: var(--muted); padding: 20px; }
+.install-banner {
+  background: linear-gradient(90deg, #ff0050, #00f2ea);
+  color: white;
+  padding: 12px;
+  text-align: center;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: none;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="installBanner" class="install-banner" onclick="installApp()">
+  📲 Instalar RecetaViral en tu dispositivo
+</div>
+
+<header>
+  <div class="lang-switch" onclick="toggleLang()">ES / EN</div>
+  <h1 id="appTitle">🔥 RecetaViral</h1>
+  <p class="subtitle" id="appSubtitle">Genera recetas rápidas estilo TikTok con lo que tienes en casa</p>
+  <p id="appTagline">Basado en tendencias reales de FoodTok • Fácil • Alto en proteína • Listo en minutos</p>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2 id="fridgeTitle">¿Qué tienes en la nevera?</h2>
+    <textarea id="ingredients" placeholder="Ej: pollo, pasta, tomates, feta, huevos, arroz, brócoli..." rows="4"></textarea>
+    <button id="genBtn" onclick="generateFromIngredients()">✨ Generar recetas con mis ingredientes</button>
+    
+    <h2 style="margin-top: 30px;" id="filtersTitle">Filtros rápidos</h2>
+    <div class="filters" id="filtersContainer">
+      <div class="filter-btn active" onclick="setFilter('all')">Todas</div>
+      <div class="filter-btn" onclick="setFilter('easy')">Fáciles</div>
+      <div class="filter-btn" onclick="setFilter('protein')">Alto proteína</div>
+      <div class="filter-btn" onclick="setFilter('fast')">Menos de 30 min</div>
+      <div class="filter-btn" onclick="setFilter('viral')">Virales TikTok</div>
+    </div>
+    <button id="randomBtn" onclick="showRandom()">🎲 Receta sorpresa</button>
+    <button id="planBtn" onclick="generateMealPlan()">📅 Plan de 7 días</button>
+  </div>
+
+  <div class="card">
+    <h2 id="recipesTitle">Recetas recomendadas</h2>
+    <div id="recipes" class="recipe-grid"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 30px;">
+  <h2 id="shopTitle">Lista de la compra inteligente</h2>
+  <ul id="shopping" class="shopping-list"></ul>
+  <button id="clearBtn" onclick="clearShopping()">Limpiar lista</button>
+</div>
+
+<footer>
+  <p id="footerText">App PWA instalable • Versión bilingüe ES/EN • Base de datos ampliada con tendencias FoodTok 2026</p>
+  <p>Modelo sugerido: Freemium (gratis básico + Premium $4.99/mes)</p>
+</footer>
+
+<script>
+let lang = localStorage.getItem('lang') || 'es';
+
+const i18n = {
+  es: {
+    title: "🔥 RecetaViral",
+    subtitle: "Genera recetas rápidas estilo TikTok con lo que tienes en casa",
+    tagline: "Basado en tendencias reales de FoodTok • Fácil • Alto en proteína • Listo en minutos",
+    fridge: "¿Qué tienes en la nevera?",
+    placeholder: "Ej: pollo, pasta, tomates, feta, huevos, arroz, brócoli...",
+    genBtn: "✨ Generar recetas con mis ingredientes",
+    filters: "Filtros rápidos",
+    random: "🎲 Receta sorpresa",
+    plan: "📅 Plan de 7 días",
+    recipes: "Recetas recomendadas",
+    shop: "Lista de la compra inteligente",
+    clear: "Limpiar lista",
+    empty: "La lista está vacía",
+    all: "Todas",
+    easy: "Fáciles",
+    protein: "Alto proteína",
+    fast: "Menos de 30 min",
+    viral: "Virales TikTok",
+    time: "Tiempo",
+    proteinLabel: "Proteína",
+    ingredients: "Ingredientes",
+    steps: "Pasos",
+    addShop: "➕ Añadir a la lista de compra",
+    added: "Ingredientes añadidos a la lista",
+    noMatch: "No encontré coincidencias exactas, te muestro las más populares.",
+    writeIng: "Escribe algunos ingredientes primero",
+    planTitle: "Plan de comidas de 7 días",
+    install: "📲 Instalar RecetaViral en tu dispositivo",
+    days: ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
+  },
+  en: {
+    title: "🔥 RecipeViral",
+    subtitle: "Generate quick TikTok-style recipes with what you have at home",
+    tagline: "Based on real FoodTok trends • Easy • High protein • Ready in minutes",
+    fridge: "What's in your fridge?",
+    placeholder: "Ex: chicken, pasta, tomatoes, feta, eggs, rice, broccoli...",
+    genBtn: "✨ Generate recipes with my ingredients",
+    filters: "Quick filters",
+    random: "🎲 Surprise recipe",
+    plan: "📅 7-day meal plan",
+    recipes: "Recommended recipes",
+    shop: "Smart shopping list",
+    clear: "Clear list",
+    empty: "The list is empty",
+    all: "All",
+    easy: "Easy",
+    protein: "High protein",
+    fast: "Under 30 min",
+    viral: "TikTok Viral",
+    time: "Time",
+    proteinLabel: "Protein",
+    ingredients: "Ingredients",
+    steps: "Steps",
+    addShop: "➕ Add to shopping list",
+    added: "Ingredients added to the list",
+    noMatch: "No exact matches found, showing the most popular ones.",
+    writeIng: "Write some ingredients first",
+    planTitle: "7-day meal plan",
+    install: "📲 Install RecipeViral on your device",
+    days: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+  }
+};
+
+const recipes = [
+  {
+    id: 1,
+    name: { es: "Pasta de Feta al Horno (Viral)", en: "Baked Feta Pasta (Viral)" },
+    tip: { es: "La receta que empezó el boom de TikTok. Super fácil y deliciosa.", en: "The recipe that started the TikTok boom. Super easy and delicious." },
+    ingredients: {
+      es: ["pasta", "feta", "tomates cherry", "ajo", "aceite de oliva", "albahaca"],
+      en: ["pasta", "feta cheese", "cherry tomatoes", "garlic", "olive oil", "basil"]
+    },
+    steps: {
+      es: ["Precalienta el horno a 200°C.", "En una bandeja pon el bloque de feta y los tomates cherry.", "Añade ajo picado y aceite de oliva. Hornea 25-30 min hasta que el feta se derrita.", "Cocina la pasta mientras tanto.", "Mezcla la pasta con la salsa de feta y tomates. Añade albahaca.", "¡Sirve y disfruta!"],
+      en: ["Preheat oven to 400°F (200°C).", "Place feta block and cherry tomatoes on a baking tray.", "Add minced garlic and olive oil. Bake 25-30 min until feta melts.", "Cook pasta meanwhile.", "Mix pasta with feta-tomato sauce. Add basil.", "Serve and enjoy!"]
+    },
+    tags: ["viral", "easy", "fast"],
+    time: "35 min",
+    protein: { es: "medio", en: "medium" }
+  },
+  {
+    id: 2,
+    name: { es: "Pasta de Cottage Cheese Alto Proteína", en: "High-Protein Cottage Cheese Pasta" },
+    tip: { es: "Tendencia de alto proteína que sigue fuerte en 2026.", en: "High-protein trend still strong in 2026." },
+    ingredients: {
+      es: ["pasta", "cottage cheese", "ajo", "parmesano", "pimienta"],
+      en: ["pasta", "cottage cheese", "garlic", "parmesan", "pepper"]
+    },
+    steps: {
+      es: ["Cocina la pasta al dente.", "Licúa el cottage cheese con ajo y un poco de agua de cocción hasta que quede cremoso.", "Mezcla con la pasta caliente.", "Añade parmesano y pimienta.", "Opcional: tosta un poco en la sartén."],
+      en: ["Cook pasta al dente.", "Blend cottage cheese with garlic and a bit of pasta water until creamy.", "Mix with hot pasta.", "Add parmesan and pepper.", "Optional: toast a bit in the pan."]
+    },
+    tags: ["protein", "easy", "fast", "viral"],
+    time: "15 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 3,
+    name: { es: "Bowl de Pollo con Arroz y Brócoli", en: "Chicken Rice Broccoli Bowl" },
+    tip: { es: "Perfecto para meal prep. Alto en proteína.", en: "Perfect for meal prep. High in protein." },
+    ingredients: {
+      es: ["pollo", "arroz", "brócoli", "soja", "ajo", "sésamo"],
+      en: ["chicken", "rice", "broccoli", "soy sauce", "garlic", "sesame"]
+    },
+    steps: {
+      es: ["Cocina el arroz.", "Corta el pollo en tiras y saltea con ajo y salsa de soja.", "Cocina el brócoli al vapor o salteado.", "Arma el bowl: arroz + pollo + brócoli.", "Espolvorea sésamo."],
+      en: ["Cook the rice.", "Slice chicken and stir-fry with garlic and soy sauce.", "Steam or stir-fry broccoli.", "Assemble bowl: rice + chicken + broccoli.", "Sprinkle sesame."]
+    },
+    tags: ["protein", "easy", "mealprep"],
+    time: "25 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 4,
+    name: { es: "One-Pot Lemon Chicken Orzo", en: "One-Pot Lemon Chicken Orzo" },
+    tip: { es: "Una olla, mínimo lavado. Ideal para entre semana.", en: "One pot, minimal cleanup. Perfect for weeknights." },
+    ingredients: {
+      es: ["pollo", "orzo", "limón", "espinacas", "caldo", "crema"],
+      en: ["chicken", "orzo", "lemon", "spinach", "broth", "cream"]
+    },
+    steps: {
+      es: ["Dora el pollo en una olla.", "Añade orzo, caldo y zumo de limón.", "Cocina a fuego medio 15 min.", "Añade crema y espinacas al final.", "Revuelve y sirve."],
+      en: ["Brown chicken in a pot.", "Add orzo, broth and lemon juice.", "Cook on medium 15 min.", "Add cream and spinach at the end.", "Stir and serve."]
+    },
+    tags: ["easy", "fast", "viral"],
+    time: "30 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 5,
+    name: { es: "Hot Honey Feta Chicken", en: "Hot Honey Feta Chicken" },
+    tip: { es: "Tendencia viral de 2026: dulce-picante con feta.", en: "2026 viral trend: sweet-spicy with feta." },
+    ingredients: {
+      es: ["pollo", "miel", "feta", "ajo", "chile", "aceite"],
+      en: ["chicken", "honey", "feta", "garlic", "chili", "oil"]
+    },
+    steps: {
+      es: ["Marina el pollo con ajo y especias.", "Cocina el pollo hasta dorado.", "Haz la salsa de hot honey (miel + chile).", "Añade feta desmenuzado sobre el pollo con la salsa.", "¡Listo!"],
+      en: ["Marinate chicken with garlic and spices.", "Cook chicken until golden.", "Make hot honey sauce (honey + chili).", "Top with crumbled feta and sauce.", "Done!"]
+    },
+    tags: ["viral", "protein", "easy"],
+    time: "30 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 6,
+    name: { es: "Huevos con Pesto y Pan Tostado", en: "Pesto Eggs on Toast" },
+    tip: { es: "Desayuno o cena rápida ultra fácil.", en: "Ultra easy breakfast or dinner." },
+    ingredients: {
+      es: ["huevos", "pesto", "pan", "tomate", "queso"],
+      en: ["eggs", "pesto", "bread", "tomato", "cheese"]
+    },
+    steps: {
+      es: ["Tuesta el pan.", "Fríe o revuelve los huevos.", "Unta pesto en el pan.", "Pon los huevos y tomate encima.", "Opcional: queso rallado."],
+      en: ["Toast the bread.", "Fry or scramble eggs.", "Spread pesto on toast.", "Top with eggs and tomato.", "Optional: grated cheese."]
+    },
+    tags: ["easy", "fast", "breakfast"],
+    time: "10 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 7,
+    name: { es: "Salmón Bowl con Arroz y Aguacate", en: "Salmon Rice Avocado Bowl" },
+    tip: { es: "Bowl saludable y lleno de sabor. Tendencia constante.", en: "Healthy and flavorful bowl. Constant trend." },
+    ingredients: {
+      es: ["salmón", "arroz", "aguacate", "pepino", "soja", "sésamo"],
+      en: ["salmon", "rice", "avocado", "cucumber", "soy sauce", "sesame"]
+    },
+    steps: {
+      es: ["Cocina el arroz.", "Cocina el salmón a la plancha o al horno.", "Corta aguacate y pepino.", "Arma el bowl y añade soja y sésamo."],
+      en: ["Cook rice.", "Pan-sear or bake salmon.", "Slice avocado and cucumber.", "Assemble bowl and add soy sauce and sesame."]
+    },
+    tags: ["protein", "easy", "healthy"],
+    time: "25 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 8,
+    name: { es: "Patatas Smashed al Air Fryer", en: "Air Fryer Smashed Potatoes" },
+    tip: { es: "Crujientes por fuera, tiernas por dentro. Viral clásico.", en: "Crispy outside, soft inside. Classic viral." },
+    ingredients: {
+      es: ["patatas", "aceite", "ajo", "parmesano", "hierbas"],
+      en: ["potatoes", "oil", "garlic", "parmesan", "herbs"]
+    },
+    steps: {
+      es: ["Hierve las patatas hasta tiernas.", "Aplasta ligeramente.", "Añade aceite, ajo y hierbas.", "Air fryer 15-20 min a 200°C.", "Espolvorea parmesano."],
+      en: ["Boil potatoes until tender.", "Gently smash them.", "Add oil, garlic and herbs.", "Air fry 15-20 min at 400°F.", "Sprinkle parmesan."]
+    },
+    tags: ["easy", "viral", "side"],
+    time: "40 min",
+    protein: { es: "bajo", en: "low" }
+  },
+  {
+    id: 9,
+    name: { es: "Marry Me Chicken", en: "Marry Me Chicken" },
+    tip: { es: "Pollo en salsa cremosa de tomate y albahaca. Super popular.", en: "Chicken in creamy tomato basil sauce. Super popular." },
+    ingredients: {
+      es: ["pollo", "tomates secos", "crema", "albahaca", "ajo", "parmesano"],
+      en: ["chicken", "sun-dried tomatoes", "cream", "basil", "garlic", "parmesan"]
+    },
+    steps: {
+      es: ["Dora el pollo.", "Añade ajo y tomates secos.", "Vierte crema y deja reducir.", "Añade albahaca y parmesano.", "Sirve con pasta o arroz."],
+      en: ["Brown the chicken.", "Add garlic and sun-dried tomatoes.", "Pour cream and reduce.", "Add basil and parmesan.", "Serve with pasta or rice."]
+    },
+    tags: ["viral", "protein", "easy"],
+    time: "30 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 10,
+    name: { es: "Birria Tacos", en: "Birria Tacos" },
+    tip: { es: "Tacos jugosos con consomé para mojar. Tendencia duradera.", en: "Juicy tacos with consommé for dipping. Lasting trend." },
+    ingredients: {
+      es: ["carne de res", "chiles", "tomate", "tortillas", "queso", "cilantro"],
+      en: ["beef", "chilies", "tomato", "tortillas", "cheese", "cilantro"]
+    },
+    steps: {
+      es: ["Cocina la carne con chiles y especias hasta tierna.", "Deshebra la carne.", "Moja tortillas en el consomé y rellena con carne y queso.", "Dora en sartén.", "Sirve con consomé para mojar."],
+      en: ["Cook beef with chilies and spices until tender.", "Shred the meat.", "Dip tortillas in consommé and fill with meat and cheese.", "Crisp in pan.", "Serve with consommé for dipping."]
+    },
+    tags: ["viral", "protein"],
+    time: "3-4 hours",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 11,
+    name: { es: "Avena al Horno (Baked Oats)", en: "Baked Oats" },
+    tip: { es: "Desayuno tipo pastel. Muy viral y personalizable.", en: "Cake-like breakfast. Very viral and customizable." },
+    ingredients: {
+      es: ["avena", "plátano", "huevo", "leche", "mantequilla de maní", "chocolate"],
+      en: ["oats", "banana", "egg", "milk", "peanut butter", "chocolate"]
+    },
+    steps: {
+      es: ["Mezcla avena, plátano, huevo y leche.", "Añade mantequilla de maní y chocolate.", "Hornea 20 min a 180°C.", "Sirve caliente."],
+      en: ["Mix oats, banana, egg and milk.", "Add peanut butter and chocolate.", "Bake 20 min at 350°F.", "Serve warm."]
+    },
+    tags: ["easy", "viral", "breakfast"],
+    time: "25 min",
+    protein: { es: "medio", en: "medium" }
+  },
+  {
+    id: 12,
+    name: { es: "Pasta Chips", en: "Pasta Chips" },
+    tip: { es: "Chips de pasta crujientes. Snack viral súper fácil.", en: "Crispy pasta chips. Super easy viral snack." },
+    ingredients: {
+      es: ["pasta", "aceite", "especias", "queso"],
+      en: ["pasta", "oil", "spices", "cheese"]
+    },
+    steps: {
+      es: ["Cocina pasta al dente.", "Escurre y seca bien.", "Mezcla con aceite y especias.", "Hornea o air fryer hasta crujiente.", "Añade queso."],
+      en: ["Cook pasta al dente.", "Drain and dry well.", "Toss with oil and spices.", "Bake or air fry until crispy.", "Add cheese."]
+    },
+    tags: ["viral", "easy", "snack"],
+    time: "30 min",
+    protein: { es: "bajo", en: "low" }
+  },
+  {
+    id: 13,
+    name: { es: "Pollo con Miel y Ajo", en: "Honey Garlic Chicken" },
+    tip: { es: "Clásico rápido y sabroso. Ideal para entre semana.", en: "Quick and tasty classic. Perfect for weeknights." },
+    ingredients: {
+      es: ["pollo", "miel", "ajo", "soja", "jengibre"],
+      en: ["chicken", "honey", "garlic", "soy sauce", "ginger"]
+    },
+    steps: {
+      es: ["Corta el pollo en cubos.", "Saltea con ajo y jengibre.", "Añade miel y soja.", "Cocina hasta que la salsa espese.", "Sirve con arroz."],
+      en: ["Cut chicken into cubes.", "Stir-fry with garlic and ginger.", "Add honey and soy sauce.", "Cook until sauce thickens.", "Serve with rice."]
+    },
+    tags: ["easy", "fast", "protein"],
+    time: "20 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 14,
+    name: { es: "Ensalada de Huevo con Chipotle", en: "Spicy Chipotle Egg Salad" },
+    tip: { es: "Alto proteína y muy sabrosa. Perfecta para sándwiches.", en: "High protein and flavorful. Perfect for sandwiches." },
+    ingredients: {
+      es: ["huevos", "chipotle", "mayonesa", "cebolla", "cilantro"],
+      en: ["eggs", "chipotle", "mayo", "onion", "cilantro"]
+    },
+    steps: {
+      es: ["Hierve los huevos y pélalos.", "Pica y mezcla con mayonesa y chipotle.", "Añade cebolla y cilantro.", "Sirve en pan o lechuga."],
+      en: ["Boil and peel eggs.", "Chop and mix with mayo and chipotle.", "Add onion and cilantro.", "Serve on bread or lettuce."]
+    },
+    tags: ["protein", "easy", "fast"],
+    time: "15 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 15,
+    name: { es: "Sopa de Gnocchi con Pollo", en: "Chicken Gnocchi Soup" },
+    tip: { es: "Comfort food de otoño. Cremosa y reconfortante.", en: "Fall comfort food. Creamy and cozy." },
+    ingredients: {
+      es: ["pollo", "gnocchi", "crema", "espinacas", "ajo", "caldo"],
+      en: ["chicken", "gnocchi", "cream", "spinach", "garlic", "broth"]
+    },
+    steps: {
+      es: ["Cocina el pollo y deshebra.", "Saltea ajo.", "Añade caldo y gnocchi.", "Incorpora crema y espinacas.", "Añade pollo y sirve."],
+      en: ["Cook and shred chicken.", "Sauté garlic.", "Add broth and gnocchi.", "Stir in cream and spinach.", "Add chicken and serve."]
+    },
+    tags: ["easy", "comfort"],
+    time: "30 min",
+    protein: { es: "medio", en: "medium" }
+  },
+  {
+    id: 16,
+    name: { es: "Tacos de Big Mac", en: "Big Mac Tacos" },
+    tip: { es: "Fusión viral divertida y fácil de hacer.", en: "Fun viral fusion that's easy to make." },
+    ingredients: {
+      es: ["carne picada", "tortillas", "lechuga", "queso", "salsa especial", "cebolla"],
+      en: ["ground beef", "tortillas", "lettuce", "cheese", "special sauce", "onion"]
+    },
+    steps: {
+      es: ["Cocina la carne con especias.", "Calienta tortillas.", "Arma con carne, lechuga, queso y salsa.", "Dobla y disfruta."],
+      en: ["Cook ground beef with spices.", "Warm tortillas.", "Assemble with beef, lettuce, cheese and sauce.", "Fold and enjoy."]
+    },
+    tags: ["viral", "easy", "fast"],
+    time: "20 min",
+    protein: { es: "alto", en: "high" }
+  },
+  {
+    id: 17,
+    name: { es: "Avena Nocturna con Chía", en: "Overnight Oats with Chia" },
+    tip: { es: "Prep la noche anterior. Desayuno listo al despertar.", en: "Prep the night before. Ready when you wake up." },
+    ingredients: {
+      es: ["avena", "chía", "leche", "yogur", "fruta", "miel"],
+      en: ["oats", "chia", "milk", "yogurt", "fruit", "honey"]
+    },
+    steps: {
+      es: ["Mezcla avena, chía, leche y yogur.", "Añade miel.", "Refrigera toda la noche.", "Añade fruta por la mañana."],
+      en: ["Mix oats, chia, milk and yogurt.", "Add honey.", "Refrigerate overnight.", "Add fruit in the morning."]
+    },
+    tags: ["easy", "breakfast", "mealprep"],
+    time: "5 min + overnight",
+    protein: { es: "medio", en: "medium" }
+  },
+  {
+    id: 18,
+    name: { es: "Pollo Shawarma Crispy Rice", en: "Crispy Rice Chicken Shawarma" },
+    tip: { es: "Arroz crujiente con pollo marinado. Super viral.", en: "Crispy rice with marinated chicken. Super viral." },
+    ingredients: {
+      es: ["pollo", "arroz", "yogur", "especias shawarma", "limón", "ajo"],
+      en: ["chicken", "rice", "yogurt", "shawarma spices", "lemon", "garlic"]
+    },
+    steps: {
+      es: ["Marina el pollo con yogur y especias.", "Cocina el arroz y dóralo en sartén hasta crujiente.", "Cocina el pollo.", "Sirve arroz crujiente con pollo y limón."],
+      en: ["Marinate chicken with yogurt and spices.", "Cook rice and crisp it in a pan.", "Cook the chicken.", "Serve crispy rice with chicken and lemon."]
+    },
+    tags: ["viral", "protein"],
+    time: "40 min",
+    protein: { es: "alto", en: "high" }
+  }
+];
+
+let currentFilter = 'all';
+let shoppingItems = new Set();
+let deferredPrompt;
+
+function t(key) {
+  return i18n[lang][key] || key;
+}
+
+function updateUI() {
+  document.getElementById('appTitle').textContent = t('title');
+  document.getElementById('appSubtitle').textContent = t('subtitle');
+  document.getElementById('appTagline').textContent = t('tagline');
+  document.getElementById('fridgeTitle').textContent = t('fridge');
+  document.getElementById('ingredients').placeholder = t('placeholder');
+  document.getElementById('genBtn').textContent = t('genBtn');
+  document.getElementById('filtersTitle').textContent = t('filters');
+  document.getElementById('randomBtn').textContent = t('random');
+  document.getElementById('planBtn').textContent = t('plan');
+  document.getElementById('recipesTitle').textContent = t('recipes');
+  document.getElementById('shopTitle').textContent = t('shop');
+  document.getElementById('clearBtn').textContent = t('clear');
+  document.getElementById('footerText').textContent = lang === 'es' 
+    ? "App PWA instalable • Versión bilingüe ES/EN • Base de datos ampliada con tendencias FoodTok 2026"
+    : "Installable PWA • Bilingual ES/EN version • Expanded database with 2026 FoodTok trends";
+  document.getElementById('installBanner').textContent = t('install');
+  
+  // Update filter buttons
+  const filters = document.querySelectorAll('.filter-btn');
+  const filterKeys = ['all','easy','protein','fast','viral'];
+  filters.forEach((btn, i) => {
+    if (filterKeys[i]) btn.textContent = t(filterKeys[i]);
+  });
+  
+  displayRecipes();
+  updateShopping();
+}
+
+function toggleLang() {
+  lang = lang === 'es' ? 'en' : 'es';
+  localStorage.setItem('lang', lang);
+  updateUI();
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  displayRecipes();
+}
+
+function displayRecipes(filtered = null) {
+  const container = document.getElementById('recipes');
+  let list = filtered || recipes;
+  
+  if (currentFilter !== 'all' && !filtered) {
+    list = recipes.filter(r => r.tags.includes(currentFilter));
+  }
+  
+  container.innerHTML = list.map(r => `
+    <div class="recipe-card" onclick="showRecipe(${r.id})">
+      <h3>${r.name[lang]}</h3>
+      <div class="tags">
+        <span class="tag">⏱ ${r.time}</span>
+        <span class="tag">💪 ${r.protein[lang]}</span>
+        ${r.tags.includes('viral') ? '<span class="tag">🔥 Viral</span>' : ''}
+      </div>
+      <p>${r.tip[lang]}</p>
+    </div>
+  `).join('');
+}
+
+function showRecipe(id) {
+  const r = recipes.find(x => x.id === id);
+  document.getElementById('modal-body').innerHTML = `
+    <h2>${r.name[lang]}</h2>
+    <p><strong>${t('time')}:</strong> ${r.time} | <strong>${t('proteinLabel')}:</strong> ${r.protein[lang]}</p>
+    <div class="tags">${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+    <h3>${t('ingredients')}</h3>
+    <ul>${r.ingredients[lang].map(i => `<li>${i}</li>`).join('')}</ul>
+    <button onclick="addToShopping(${id})">${t('addShop')}</button>
+    <h3>${t('steps')}</h3>
+    ${r.steps[lang].map((s, i) => `<div class="step"><strong>${i+1}.</strong> ${s}</div>`).join('')}
+    <p style="margin-top:15px;"><em>${r.tip[lang]}</em></p>
+  `;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+function generateFromIngredients() {
+  const input = document.getElementById('ingredients').value.toLowerCase();
+  if (!input.trim()) {
+    alert(t('writeIng'));
+    return;
+  }
+  const words = input.split(/[, ]+/).filter(w => w.length > 2);
+  const matches = recipes.filter(r => 
+    r.ingredients[lang].some(ing => words.some(w => ing.toLowerCase().includes(w) || w.includes(ing.toLowerCase().split(' ')[0])))
+  );
+  displayRecipes(matches.length ? matches : recipes.slice(0, 4));
+  if (matches.length === 0) {
+    alert(t('noMatch'));
+  }
+}
+
+function showRandom() {
+  const r = recipes[Math.floor(Math.random() * recipes.length)];
+  showRecipe(r.id);
+}
+
+function generateMealPlan() {
+  const days = t('days');
+  const shuffled = [...recipes].sort(() => 0.5 - Math.random());
+  let html = `<h2>${t('planTitle')}</h2>`;
+  days.forEach((day, i) => {
+    const r = shuffled[i % shuffled.length];
+    html += `<div class="step"><strong>${day}:</strong> ${r.name[lang]} <button onclick="addToShopping(${r.id})" style="width:auto; padding:6px 12px; margin-left:10px;">+ Lista</button></div>`;
+  });
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function addToShopping(id) {
+  const r = recipes.find(x => x.id === id);
+  r.ingredients[lang].forEach(i => shoppingItems.add(i));
+  updateShopping();
+  alert(t('added'));
+}
+
+function updateShopping() {
+  const ul = document.getElementById('shopping');
+  ul.innerHTML = [...shoppingItems].map(i => `<li>🛒 ${i}</li>`).join('') || `<li>${t('empty')}</li>`;
+}
+
+function clearShopping() {
+  shoppingItems.clear();
+  updateShopping();
+}
+
+// PWA Install
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'block';
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('installBanner').style.display = 'none';
+    });
+  }
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered', reg))
+      .catch(err => console.log('SW failed', err));
+  });
+}
+
+// Init
+updateUI();
+updateShopping();
+
+window.onclick = function(event) {
+  if (event.target == document.getElementById('modal')) closeModal();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abel Ibarra Chef</title>
+<style>
+body { font-family: system-ui, sans-serif; background:#0f0f0f; color:#fff; margin:0; padding:16px; max-width:800px; margin:0 auto; }
+header { text-align:center; padding:24px; background:linear-gradient(135deg,#ff0050,#00f2ea); border-radius:16px; margin-bottom:20px; }
+.card { background:#1a1a1a; border-radius:12px; padding:16px; margin-bottom:14px; }
+button { width:100%; padding:12px; background:#ff0050; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; margin:6px 0; }
+.recipe { background:#222; border-radius:10px; padding:14px; margin:10px 0; cursor:pointer; }
+.recipe h3 { color:#00f2ea; margin:0 0 6px; }
+.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000; overflow:auto; }
+.modal-content { background:#1a1a1a; margin:20px auto; padding:20px; border-radius:12px; max-width:560px; }
+.timer { font-size:2em; font-weight:bold; color:#00f2ea; text-align:center; margin:10px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>👨‍🍳 Abel Ibarra Chef</h1>
+  <p>Recetas virales con gramajes exactos</p>
+</header>
+
+<div class="card">
+  <h2>Recetas</h2>
+  <div id="list"></div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <button onclick="closeModal()" style="width:auto;float:right;">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const recipes = [
+  {id:1, name:"Pasta de Feta al Horno (Viral)", tip:"La receta que empezó el boom de TikTok.", ingredients:["200 g pasta","200 g queso feta","250 g tomates cherry","3 dientes de ajo (≈15 g)","30 ml aceite de oliva","10 g albahaca fresca"], steps:["Precalienta el horno a 200 °C.","Coloca el feta y los tomates en una bandeja.","Añade el ajo y el aceite.","Hornea 25-30 min.","Cocina la pasta y mezcla todo con la albahaca."], time:"35 min", protein:"medio", macros:"520 kcal • P:18g • C:55g • F:26g"},
+  {id:2, name:"Pasta de Cottage Cheese Alto Proteína", tip:"Tendencia de alto proteína fuerte en 2026.", ingredients:["200 g pasta","250 g cottage cheese","2 dientes de ajo","30 g parmesano"], steps:["Cocina la pasta al dente.","Licúa el cottage con ajo y un poco de agua de pasta.","Mezcla con la pasta caliente y añade parmesano."], time:"15 min", protein:"alto", macros:"480 kcal • P:32g • C:52g • F:14g"},
+  {id:3, name:"Bowl de Pollo con Arroz y Brócoli", tip:"Perfecto para meal prep.", ingredients:["200 g pechuga de pollo","150 g arroz","150 g brócoli","15 ml salsa de soja","2 dientes de ajo"], steps:["Cocina el arroz.","Saltea el pollo con ajo y soja.","Cocina el brócoli.","Arma el bowl."], time:"25 min", protein:"alto", macros:"450 kcal • P:38g • C:42g • F:12g"},
+  {id:4, name:"Hot Honey Feta Chicken", tip:"Tendencia viral 2026: dulce-picante.", ingredients:["400 g pollo","45 g miel","100 g feta","2 dientes de ajo","1 cucharadita de chile"], steps:["Marina el pollo.","Cocínalo hasta dorar.","Haz la salsa de miel picante.","Sirve con feta."], time:"30 min", protein:"alto", macros:"490 kcal • P:40g • C:22g • F:26g"},
+  {id:5, name:"Huevos con Pesto y Pan Tostado", tip:"Desayuno o cena ultra rápida.", ingredients:["2 huevos","30 g pesto","2 rebanadas de pan","1 tomate"], steps:["Tuesta el pan.","Cocina los huevos.","Unta el pesto y monta con el tomate."], time:"10 min", protein:"alto", macros:"380 kcal • P:20g • C:28g • F:22g"}
+];
+
+let timerSeconds = 0;
+let timerInterval = null;
+
+function render() {
+  document.getElementById('list').innerHTML = recipes.map(r => `
+    <div class="recipe" onclick="openRecipe(${r.id})">
+      <h3>${r.name}</h3>
+      <p>⏱ ${r.time} • 💪 ${r.protein}</p>
+      <p>${r.tip}</p>
+    </div>
+  `).join('');
+}
+
+function openRecipe(id) {
+  const r = recipes.find(x => x.id === id);
+  document.getElementById('modal-body').innerHTML = `
+    <h2>${r.name}</h2>
+    <p>⏱ ${r.time} • 💪 ${r.protein}</p>
+    <p><strong>Macros:</strong> ${r.macros}</p>
+    <div class="timer" id="timerDisplay">00:00</div>
+    <button onclick="setTimer(10)">10 min</button>
+    <button onclick="setTimer(15)">15 min</button>
+    <button onclick="startTimer()">▶️ Iniciar</button>
+    <button onclick="pauseTimer()">⏸️ Pausar</button>
+    <h3>Ingredientes (gramajes exactos)</h3>
+    <ul>${r.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>
+    <h3>Pasos</h3>
+    ${r.steps.map((s,i) => `<div style="margin:8px 0;padding:10px;background:#222;border-radius:8px;"><strong>${i+1}.</strong> ${s}</div>`).join('')}
+  `;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function closeModal() {
+  pauseTimer();
+  document.getElementById('modal').style.display = 'none';
+}
+
+function setTimer(m) { timerSeconds = m*60; updateTimer(); }
+function startTimer() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    if (timerSeconds <= 0) { clearInterval(timerInterval); timerInterval=null; alert('⏰ ¡Listo!'); return; }
+    timerSeconds--; updateTimer();
+  }, 1000);
+}
+function pauseTimer() { clearInterval(timerInterval); timerInterval=null; }
+function updateTimer() {
+  const m = Math.floor(timerSeconds/60), s = timerSeconds%60;
+  const el = document.getElementById('timerDisplay');
+  if (el) el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+render();
+window.onclick = e => { if (e.target.id === 'modal') closeModal(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abel Ibarra Chef</title>
+<style>
+:root { --primary:#ff0050; --secondary:#00f2ea; --bg:#0f0f0f; --card:#1a1a1a; --text:#fff; --muted:#aaa; --border:#333; }
+[data-theme="light"] { --bg:#f8f9fa; --card:#fff; --text:#1a1a1a; --muted:#666; --border:#e0e0e0; }
+* { box-sizing:border-box; }
+body { font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:16px; max-width:920px; margin:0 auto; line-height:1.5; transition:background .3s, color .3s; }
+header { text-align:center; padding:32px 16px; background:linear-gradient(135deg,#ff0050,#00f2ea); border-radius:20px; margin-bottom:20px; position:relative; color:#fff; }
+h1 { margin:0 0 6px; font-size:2em; }
+.top-controls { position:absolute; top:12px; right:12px; display:flex; gap:8px; }
+.top-btn { background:rgba(0,0,0,.3); border:none; color:#fff; border-radius:20px; padding:6px 12px; cursor:pointer; font-weight:600; }
+.card { background:var(--card); border-radius:16px; padding:18px; margin-bottom:16px; border:1px solid var(--border); }
+input, textarea, button, select { width:100%; padding:12px; margin:6px 0; border:none; border-radius:10px; font-size:16px; }
+input, textarea, select { background:var(--bg); color:var(--text); border:1px solid var(--border); }
+button { background:var(--primary); color:#fff; font-weight:bold; cursor:pointer; }
+.filters { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+.filter-btn { padding:8px 14px; background:var(--bg); border-radius:20px; cursor:pointer; border:2px solid transparent; font-size:14px; }
+.filter-btn.active { border-color:var(--secondary); }
+.recipe { background:var(--bg); border-radius:12px; padding:14px; margin:10px 0; cursor:pointer; border:1px solid var(--border); position:relative; transition:transform .15s; }
+.recipe:hover { transform:translateY(-2px); }
+.recipe h3 { color:var(--secondary); margin:0 0 6px; }
+.fav-btn { position:absolute; top:10px; right:10px; background:none; border:none; font-size:20px; cursor:pointer; width:auto; padding:0; }
+.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:1000; overflow:auto; }
+.modal-content { background:var(--card); margin:16px auto; padding:20px; border-radius:16px; max-width:640px; position:relative; color:var(--text); }
+.close { position:absolute; top:12px; right:14px; font-size:28px; cursor:pointer; }
+.timer { font-size:2.2em; font-weight:bold; color:var(--secondary); text-align:center; margin:12px 0; }
+.macros { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+.macro { background:var(--bg); padding:6px 10px; border-radius:8px; font-size:.9em; }
+.badge { display:inline-block; background:var(--card); padding:2px 8px; border-radius:10px; font-size:.8em; margin-right:4px; border:1px solid var(--border); }
+.servings { display:flex; align-items:center; gap:10px; margin:10px 0; }
+.servings button { width:40px; }
+.shopping li { padding:6px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top-controls">
+    <button class="top-btn" onclick="toggleTheme()">🌙</button>
+    <button class="top-btn" onclick="toggleFavView()">⭐</button>
+  </div>
+  <h1>👨‍🍳 Abel Ibarra Chef</h1>
+  <p>Nikkei • Mediterráneo • Virales • Generador Inteligente</p>
+</header>
+
+<div class="card">
+  <h2>Generador Inteligente de Recetas</h2>
+  <textarea id="ingredients" placeholder="Escribe lo que tienes: salmón, limón, ajo, brócoli, feta, arroz..." rows="3"></textarea>
+  <button onclick="generateAI()">✨ Generar recetas con mis ingredientes</button>
+  <div class="filters">
+    <div class="filter-btn active" onclick="setFilter('all',this)">Todas</div>
+    <div class="filter-btn" onclick="setFilter('nikkei',this)">Nikkei</div>
+    <div class="filter-btn" onclick="setFilter('mediterraneo',this)">Mediterráneo</div>
+    <div class="filter-btn" onclick="setFilter('viral',this)">Virales</div>
+    <div class="filter-btn" onclick="setFilter('protein',this)">Alto proteína</div>
+    <div class="filter-btn" onclick="setFilter('fast',this)"><30 min</div>
+  </div>
+</div>
+
+<div id="recipes" class="card"></div>
+
+<div class="card">
+  <h2>Lista de la compra</h2>
+  <ul id="shopping" class="shopping"></ul>
+  <button onclick="clearShopping()">Limpiar lista</button>
+</div>
+
+<div class="card">
+  <h2>Tips de cocina de Abel Ibarra Chef</h2>
+  <ul class="tips" id="tips"></ul>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const recipes = [
+  {id:1, name:"Pasta de Feta al Horno (Viral)", tip:"La receta que empezó el boom de TikTok.", ingredients:["200 g pasta","200 g queso feta","250 g tomates cherry","3 dientes de ajo (≈15 g)","30 ml aceite de oliva","10 g albahaca fresca"], steps:["Precalienta el horno a 200 °C.","Coloca el feta y los tomates en una bandeja.","Añade el ajo laminado y el aceite.","Hornea 25-30 min hasta que el feta se funda.","Cocina la pasta al dente y mezcla todo con la albahaca."], tags:["viral","mediterraneo","easy"], time:"35 min", protein:"medio", macros:{kcal:520,protein:18,carbs:55,fat:26}, servings:2},
+  {id:2, name:"Tiradito Nikkei de Salmón", tip:"Fresco, cítrico y elegante. Clásico de la cocina nikkei.", ingredients:["200 g salmón fresco en láminas","30 ml jugo de limón","15 ml salsa de soja","10 g jengibre rallado","1 cucharadita de aji amarillo o chile","5 g cilantro"], steps:["Corta el salmón en láminas finas.","Mezcla limón, soja, jengibre y aji.","Baña el salmón con la salsa.","Deja reposar 5 minutos.","Sirve con cilantro."], tags:["nikkei","protein","fast","healthy"], time:"10 min", protein:"alto", macros:{kcal:280,protein:28,carbs:4,fat:16}, servings:1},
+  {id:3, name:"Ceviche Nikkei de Pescado", tip:"Versión peruano-japonesa con toque de soja y jengibre.", ingredients:["250 g pescado blanco","60 ml jugo de limón","15 ml salsa de soja","10 g jengibre","1 cebolla morada","cilantro"], steps:["Corta el pescado en cubos.","Mezcla con limón, soja y jengibre.","Añade cebolla y cilantro.","Deja reposar 10 minutos.","Sirve frío."], tags:["nikkei","protein","fast"], time:"15 min", protein:"alto", macros:{kcal:220,protein:32,carbs:6,fat:6}, servings:2},
+  {id:4, name:"Arroz Chaufa Nikkei", tip:"Fusión peruano-china-japonesa. Muy sabroso y rápido.", ingredients:["200 g arroz cocido","150 g pollo o camarones","2 huevos","30 ml salsa de soja","2 dientes de ajo","5 g jengibre","cebollín"], steps:["Saltea ajo y jengibre.","Añade el pollo o camarones.","Incorpora el arroz y la soja.","Agrega los huevos y el cebollín.","Saltea a fuego alto."], tags:["nikkei","protein","fast"], time:"20 min", protein:"alto", macros:{kcal:480,protein:30,carbs:52,fat:14}, servings:2},
+  {id:5, name:"Ensalada Mediterránea de Quinoa", tip:"Fresca, completa y llena de color.", ingredients:["100 g quinoa","150 g garbanzos","1 pepino","100 g tomates cherry","50 g feta","20 g aceitunas","jugo de limón","aceite de oliva"], steps:["Cocina la quinoa.","Mezcla con garbanzos, pepino y tomates.","Añade feta y aceitunas.","Aliña con limón y aceite."], tags:["mediterraneo","protein","healthy","easy"], time:"20 min", protein:"alto", macros:{kcal:420,protein:18,carbs:48,fat:16}, servings:2},
+  {id:6, name:"Pollo al Limón Mediterráneo", tip:"Jugoso, aromático y listo en 25 minutos.", ingredients:["400 g pechuga de pollo","1 limón","3 dientes de ajo","20 ml aceite de oliva","romero o orégano"], steps:["Marina el pollo con limón, ajo y hierbas.","Dora en sartén con aceite.","Cocina hasta que esté dorado.","Sirve con el jugo de la sartén."], tags:["mediterraneo","protein","easy","fast"], time:"25 min", protein:"alto", macros:{kcal:380,protein:42,carbs:4,fat:20}, servings:2},
+  {id:7, name:"Pasta de Cottage Cheese Alto Proteína", tip:"Tendencia de alto proteína fuerte en 2026.", ingredients:["200 g pasta","250 g cottage cheese","2 dientes de ajo","30 g parmesano"], steps:["Cocina la pasta al dente.","Licúa el cottage con ajo y un poco de agua de pasta.","Mezcla con la pasta caliente y añade parmesano."], tags:["protein","easy","fast","viral"], time:"15 min", protein:"alto", macros:{kcal:480,protein:32,carbs:52,fat:14}, servings:2},
+  {id:8, name:"Poke Bowl Nikkei", tip:"Fresco, colorido y muy completo.", ingredients:["150 g salmón o atún","120 g arroz","1/2 aguacate","pepino","edamame","salsa de soja","sésamo"], steps:["Cocina el arroz.","Corta el pescado y el aguacate.","Arma el bowl.","Aliña con soja y sésamo."], tags:["nikkei","protein","healthy"], time:"20 min", protein:"alto", macros:{kcal:480,protein:30,carbs:42,fat:18}, servings:1},
+  {id:9, name:"Lomo Saltado Nikkei", tip:"El clásico peruano con influencia china y japonesa.", ingredients:["300 g lomo de res","1 cebolla","2 tomates","papas fritas","30 ml salsa de soja","vinagre"], steps:["Saltea la carne a fuego alto.","Añade cebolla y tomate.","Incorpora soja y vinagre.","Sirve con papas fritas."], tags:["nikkei","protein"], time:"25 min", protein:"alto", macros:{kcal:520,protein:38,carbs:32,fat:24}, servings:2},
+  {id:10, name:"Ensalada Griega Clásica", tip:"Fresca, simple y llena de sabor mediterráneo.", ingredients:["1 pepino","2 tomates","100 g feta","50 g aceitunas","1 cebolla morada","aceite de oliva","orégano"], steps:["Corta todas las verduras.","Añade feta y aceitunas.","Aliña con aceite y orégano."], tags:["mediterraneo","easy","fast","healthy"], time:"10 min", protein:"medio", macros:{kcal:280,protein:10,carbs:12,fat:22}, servings:2}
+];
+
+const tips = [
+  "Siempre sala el agua de la pasta como si fuera el mar. El sabor se absorbe mejor.",
+  "En cocina nikkei, el jengibre fresco y el limón son tus mejores aliados para equilibrar.",
+  "Para que el feta se funda bien al horno, no lo envuelvas: déjalo al descubierto.",
+  "El secreto de un buen salteado es el fuego alto y no mover demasiado la comida.",
+  "En recetas mediterráneas, usa aceite de oliva virgen extra al final para potenciar el sabor.",
+  "Si vas a hacer ceviche o tiradito, el pescado debe estar muy fresco y bien frío.",
+  "Para más proteína sin añadir muchas calorías, usa cottage cheese o yogur griego como base de salsas.",
+  "Deja reposar la carne 5 minutos después de cocinarla para que los jugos se redistribuyan."
+];
+
+let currentFilter = 'all';
+let showFavoritesOnly = false;
+let favorites = JSON.parse(localStorage.getItem('favs') || '[]');
+let shopping = new Set(JSON.parse(localStorage.getItem('shop') || '[]'));
+let timerSeconds = 0;
+let timerInterval = null;
+let currentServings = 2;
+let theme = localStorage.getItem('theme') || 'dark';
+document.documentElement.setAttribute('data-theme', theme);
+
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  document.querySelector('.top-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
+function toggleFavView() {
+  showFavoritesOnly = !showFavoritesOnly;
+  display();
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  showFavoritesOnly = false;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  display();
+}
+
+function display(list) {
+  let arr = list || recipes;
+  if (showFavoritesOnly) arr = recipes.filter(r => favorites.includes(r.id));
+  else if (currentFilter !== 'all') arr = recipes.filter(r => r.tags.includes(currentFilter));
+  document.getElementById('recipes').innerHTML = '<h2>' + (showFavoritesOnly ? '⭐ Favoritos' : 'Recetas') + '</h2>' + 
+    (arr.length ? arr.map(r => `
+      <div class="recipe" onclick="openRecipe(${r.id})">
+        <button class="fav-btn" onclick="event.stopPropagation(); toggleFav(${r.id})">${favorites.includes(r.id)?'❤️':'🤍'}</button>
+        <h3>${r.name}</h3>
+        <div>
+          <span class="badge">⏱ ${r.time}</span>
+          <span class="badge">💪 ${r.protein}</span>
+          ${r.tags.includes('nikkei') ? '<span class="badge">Nikkei</span>' : ''}
+          ${r.tags.includes('mediterraneo') ? '<span class="badge">Mediterráneo</span>' : ''}
+          ${r.tags.includes('viral') ? '<span class="badge">🔥 Viral</span>' : ''}
+        </div>
+        <p>${r.tip}</p>
+      </div>
+    `).join('') : '<p>No hay recetas en esta categoría.</p>');
+}
+
+function openRecipe(id) {
+  const r = recipes.find(x => x.id === id);
+  currentServings = r.servings || 2;
+  renderModal(r);
+  document.getElementById('modal').style.display = 'block';
+}
+
+function renderModal(r) {
+  const factor = currentServings / (r.servings || 2);
+  const ings = r.ingredients.map(i => {
+    const m = i.match(/^(\d+(\.\d+)?)\s*(g|ml)/i);
+    if (m) return i.replace(m[0], Math.round(parseFloat(m[1])*factor*10)/10 + m[3]);
+    return i;
+  });
+  document.getElementById('modal-body').innerHTML = `
+    <h2>${r.name}</h2>
+    <p>⏱ ${r.time} • 💪 ${r.protein}</p>
+    <div class="servings">
+      <span>Porciones:</span>
+      <button onclick="changeServings(${r.id},-1)">-</button>
+      <strong>${currentServings}</strong>
+      <button onclick="changeServings(${r.id},1)">+</button>
+    </div>
+    <div class="macros">
+      <div class="macro">${Math.round(r.macros.kcal*factor)} kcal</div>
+      <div class="macro">P: ${Math.round(r.macros.protein*factor)}g</div>
+      <div class="macro">C: ${Math.round(r.macros.carbs*factor)}g</div>
+      <div class="macro">F: ${Math.round(r.macros.fat*factor)}g</div>
+    </div>
+    <div class="timer" id="timerDisplay">00:00</div>
+    <button onclick="setTimer(10)">10 min</button>
+    <button onclick="setTimer(15)">15 min</button>
+    <button onclick="setTimer(20)">20 min</button>
+    <button onclick="startTimer()">▶️ Iniciar</button>
+    <button onclick="pauseTimer()">⏸️ Pausar</button>
+    <button onclick="addToShop(${r.id})">➕ Añadir ingredientes a la lista</button>
+    <h3>Ingredientes (gramajes exactos)</h3>
+    <ul>${ings.map(i => `<li>${i}</li>`).join('')}</ul>
+    <h3>Pasos</h3>
+    ${r.steps.map((s,i) => `<div style="margin:8px 0;padding:10px;background:var(--bg);border-radius:8px;"><strong>${i+1}.</strong> ${s}</div>`).join('')}
+    <p style="margin-top:12px;"><em>${r.tip}</em></p>
+  `;
+}
+
+function changeServings(id, d) {
+  currentServings = Math.max(1, currentServings + d);
+  renderModal(recipes.find(x => x.id === id));
+}
+
+function closeModal() {
+  pauseTimer();
+  document.getElementById('modal').style.display = 'none';
+}
+
+function toggleFav(id) {
+  if (favorites.includes(id)) favorites = favorites.filter(f => f !== id);
+  else favorites.push(id);
+  localStorage.setItem('favs', JSON.stringify(favorites));
+  display();
+}
+
+function setTimer(m) { timerSeconds = m*60; updateTimer(); }
+function startTimer() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    if (timerSeconds <= 0) { clearInterval(timerInterval); timerInterval=null; alert('⏰ ¡Listo!'); return; }
+    timerSeconds--; updateTimer();
+  }, 1000);
+}
+function pauseTimer() { clearInterval(timerInterval); timerInterval=null; }
+function updateTimer() {
+  const m = Math.floor(timerSeconds/60), s = timerSeconds%60;
+  const el = document.getElementById('timerDisplay');
+  if (el) el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function generateAI() {
+  const q = document.getElementById('ingredients').value.toLowerCase().trim();
+  if (!q) return alert('Escribe algunos ingredientes primero');
+  const words = q.split(/[, ]+/).filter(w => w.length > 2);
+  const matches = recipes.filter(r => r.ingredients.some(ing => words.some(w => ing.toLowerCase().includes(w))));
+  display(matches.length ? matches : recipes.slice(0,4));
+  if (!matches.length) alert('No encontré coincidencias exactas. Te muestro las más populares.');
+}
+
+function addToShop(id) {
+  const r = recipes.find(x => x.id === id);
+  r.ingredients.forEach(i => shopping.add(i));
+  localStorage.setItem('shop', JSON.stringify([...shopping]));
+  updateShopping();
+  alert('Ingredientes añadidos a la lista');
+}
+
+function updateShopping() {
+  document.getElementById('shopping').innerHTML = [...shopping].map(i => `<li>🛒 ${i} <button onclick="removeShop('${i.replace(/'/g,"\\'")}')" style="width:auto;padding:4px 8px;">✕</button></li>`).join('') || '<li>Lista vacía</li>';
+}
+
+function removeShop(item) {
+  shopping.delete(item);
+  localStorage.setItem('shop', JSON.stringify([...shopping]));
+  updateShopping();
+}
+
+function clearShopping() {
+  shopping.clear();
+  localStorage.setItem('shop', '[]');
+  updateShopping();
+}
+
+function renderTips() {
+  document.getElementById('tips').innerHTML = tips.map(t => `<li>${t}</li>`).join('');
+}
+
+display();
+updateShopping();
+renderTips();
+window.onclick = e => { if (e.target.id === 'modal') closeModal(); };
+</script>
+</body>
+</html>
